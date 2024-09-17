@@ -1,0 +1,20 @@
+[project]
+name = "minikv"
+version = "0.1"
+dependencies=['asyncio', 'requests']
+requires-python=">=3.11"
+
+[metadata]
+author = "Kai Mast"
+author_email = "kai@kaimast.com"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project.scripts]
+minikv = "minikv:serve"
+minikv-no-replication = "minikv.no_replication:serve"
+
+[tool.setuptools.packages.find]
+where = ["."]
