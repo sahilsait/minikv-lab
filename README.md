@@ -49,6 +49,22 @@ Try to understand the code that is already there and add the missing code where 
 
 You should only modify files within `minikv/chain_replication`, do not modify the Makefile, test scripts, or client code.
 
+## MiniKV Chain Replication Protocol
+Here is a quick outline how updates are supposed to work in MinkKV.
+This is more or less how we talked about the protocol in class.
+
+The client sends an update request to the head of the chain.
+The head should assign this request some unique identifier (e.g., a random integer), apply the update locally, and keep track of it until it has been applied to all nodes in the chain.
+The unique id is needed as there might be multiple concurrent updates to the same key.
+
+The request then travels through the chain (forward pass).
+Every node, applies the update to their local state, stores the pending request, and forwards the update to its successor.
+The tail node is a special case, where the pending request is not stored, because it does not have a successor.
+Instead, the tail node initiates the acknowledgement (or backward) pass.
+
+When receiving a backward pass message, nodes remove the request from their set of pending updates and notify their predecessor.
+Once the head receives an acknowledgement/backward pass message, it will reply to the client that the update was successful.
+
 ## Background and Tips
 ### Coding Style
 Because object members are always public in Python, it is good practice to prefix private variables and functions with an underscore.
