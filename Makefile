@@ -36,7 +36,7 @@ submit-check:
 		test "$$r" = y; \
 	fi
 
-zipball: clean submit-check
+zipball: submit-check
 	git archive --verbose --format zip --output lab.zip HEAD
 
 
