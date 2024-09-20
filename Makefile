@@ -37,6 +37,6 @@ submit-check:
 	fi
 
 zipball: submit-check
-	git archive --verbose --format zip --output lab.zip HEAD
+	git archive --verbose --format zip --output submission.zip HEAD
 
 

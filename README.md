@@ -149,6 +149,6 @@ This will stop *all*  all Python and Make processes currently running.
 
 ## Submission and Grading
 Run `make test-chain-replication` to verify tests are passing. There are no hidden tests, if these pass and upload the zipfile correctly, you should get the full score.
-Then run `make zipball` to create a zipfile and upload it to Gradscope.
+Then run `make zipball` to create a zipfile (named `submission.zip`) and upload it to Gradscope.
 
 If you find any error with the assignments and you are the first person to tell me, I will give you *bonus points*. So start early :)

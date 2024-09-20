@@ -116,7 +116,7 @@ def _main():
 
             output['tests'].append({
                 'name': name,
-                'score': 1.0 if success else 0.0,
+                'score': 10.0 if success else 0.0,
             })
 
     print(f"### {success_count} tests passed, {len(failed_tests)} failed")

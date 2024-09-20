@@ -1,8 +1,8 @@
 [project]
 name = "minikv"
 version = "0.1"
-dependencies=['asyncio', 'requests']
-requires-python=">=3.11"
+dependencies=['asyncio', 'aiohttp', 'requests']
+requires-python=">=3.10"
 
 [metadata]
 author = "Kai Mast"
