@@ -39,6 +39,8 @@ class TestRunner:
             servers.append(Popen(server_args))
             sleep(0.1)
 
+        print("Started {num_replicas} replicas")
+
         self._servers = servers
 
     def shutdown(self):
@@ -78,7 +80,7 @@ def _main():
     output = {
         'tests': [],
         'extra_data': {
-            'scale_factor': args.scale_factor,
+            'scale_factor':args.scale_factor,
             'replication_type': args.replication_type,
         }
     }
@@ -168,8 +170,7 @@ def test_update(_runner, conf_values, args):
                 "fill", "--loglevel="+args.loglevel,
                 f"--key-range={num_keys}", f"--value-prefix={value}"])
 
-    print("First pass of data written to MiniKV")
-
+    print("Second pass of data written to MiniKV")
 
     # Check that every node has all data
     for idx in range(conf_values["num-replicas"]):
@@ -183,8 +184,6 @@ def test_update(_runner, conf_values, args):
 
 def test_insert_multi_client(_runner, conf_values, args):
     ''' Test MiniKV with a multiple concurrent clients '''
-
-    print("Running single client test")
 
     num_clients = 10
     num_keys = args.scale_factor * 1000
