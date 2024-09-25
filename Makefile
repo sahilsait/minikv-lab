@@ -1,7 +1,11 @@
 SRC_DIR=./minikv
 
-lint:
+lint: pylint mypy
+
+mypy:
 	pylint ${SRC_DIR}
+
+pylint:
 	mypy ${SRC_DIR} 
 
 install:

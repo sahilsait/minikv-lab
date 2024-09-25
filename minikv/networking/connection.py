@@ -1,6 +1,6 @@
 ''' All logic for a connection to another peer resides here '''
 
-#pylint: disable=too-many-arguments,too-many-instance-attributes
+#pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-instance-attributes
 
 import pickle
 import asyncio

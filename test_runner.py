@@ -11,11 +11,16 @@ import argparse
 from subprocess import check_call, Popen
 from time import sleep
 
+class Logger:
+    ''' Writes output to log and also a string '''
+
 class TestRunner:
     ''' Sets up the replica set for us to run the test on '''
 
     def __init__(self, num_replicas: int, replication_type: str, loglevel: str):
-        print("Started Test Runner")
+        self._log: list[str] = []
+
+        self.log("Started Test Runner")
 
         assert num_replicas > 0
         servers = []
@@ -39,9 +44,20 @@ class TestRunner:
             servers.append(Popen(server_args))
             sleep(0.1)
 
-        print("Started {num_replicas} replicas")
+        self.log(f"Started {num_replicas} replicas")
 
         self._servers = servers
+
+    def log(self, msg):
+        ''' Print a new log message '''
+        print(msg)
+        self._log.append(msg)
+
+    def get_output(self) -> str:
+        ''' Get a log messages as a string '''
+        return '\n'.join(self._log)
+
+
 
     def shutdown(self):
         ''' Shut down the test and all servers we set up for it '''
@@ -79,6 +95,7 @@ def _main():
 
     output = {
         'tests': [],
+        'stdout_visibility': 'visible',
         'extra_data': {
             'scale_factor':args.scale_factor,
             'replication_type': args.replication_type,
@@ -97,6 +114,7 @@ def _main():
             continue
 
         for name, test in tests.items():
+
             print(f'### Running test "{name}" for config "{conf_name}" ###')
             success = True
 
@@ -105,19 +123,23 @@ def _main():
             try:
                 test(runner, conf_values, args)
             except Exception as err:
-                print(f"ERROR: {err}")
+                runner.log(f"ERROR: {err}")
                 success = False
 
             runner.shutdown()
             if success:
-                print(f'>> Test "{name}" passed')
+                runner.log(f'>> Test "{name}" passed')
                 success_count += 1
             else:
-                print(f'>> Test "{name}" failed')
+                runner.log(f'>> Test "{name}" failed')
                 failed_tests.append(name)
 
             output['tests'].append({
                 'name': name,
+                'output': runner.get_output(),
+                'output_format': 'text',
+                'status': 'passed' if success else 'failed',
+                'max_score': 10.0,
                 'score': 10.0 if success else 0.0,
             })
 
@@ -133,7 +155,7 @@ def _main():
 
     sys.exit(len(failed_tests))
 
-def test_insert_single_client(_runner, conf_values, args):
+def test_insert_single_client(runner, conf_values, args):
     ''' Test MiniKV with a single client '''
 
     num_keys = args.scale_factor * 10
@@ -143,18 +165,18 @@ def test_insert_single_client(_runner, conf_values, args):
                 "fill", "--loglevel="+args.loglevel,
                 f"--key-range={num_keys}"])
 
-    print("All data written to MiniKV")
+    runner.log("All data written to MiniKV")
 
     # Check that every node has all data
     for idx in range(conf_values["num-replicas"]):
-        print(f"Checking node with id={idx}")
+        runner.log(f"Checking node with id={idx}")
 
         check_call(["python", "-c", "import minikv; minikv.run_client();",
                     "check-values", "--loglevel="+args.loglevel,
                     f"--server-address=localhost:{8080+idx}",
                     f"--key-range={num_keys}"])
 
-def test_update(_runner, conf_values, args):
+def test_update(runner, conf_values, args):
     ''' Test MiniKV with a single client '''
 
     num_keys = args.scale_factor * 10
@@ -164,17 +186,17 @@ def test_update(_runner, conf_values, args):
                 "fill", "--loglevel="+args.loglevel,
                 f"--key-range={num_keys}", "--value-prefix=foobar"])
 
-    print("First pass of data written to MiniKV")
+    runner.log("First pass of data written to MiniKV")
 
     check_call(["python", "-c", "import minikv; minikv.run_client();",
                 "fill", "--loglevel="+args.loglevel,
                 f"--key-range={num_keys}", f"--value-prefix={value}"])
 
-    print("Second pass of data written to MiniKV")
+    runner.log("Second pass of data written to MiniKV")
 
     # Check that every node has all data
     for idx in range(conf_values["num-replicas"]):
-        print(f"Checking node with id={idx}")
+        runner.log(f"Checking node with id={idx}")
 
         check_call(["python", "-c", "import minikv; minikv.run_client();",
                     "check-values", "--loglevel="+args.loglevel,
@@ -182,17 +204,17 @@ def test_update(_runner, conf_values, args):
                     f"--key-range={num_keys}", f"--value-prefix={value}"])
 
 
-def test_insert_multi_client(_runner, conf_values, args):
+def test_insert_multi_client(runner, conf_values, args):
     ''' Test MiniKV with a multiple concurrent clients '''
 
     num_clients = 10
     num_keys = args.scale_factor * 1000
 
     if num_clients > num_keys:
-        print("WARNING: key range smaller than number of clients")
+        runner.log("WARNING: key range smaller than number of clients")
 
     if num_keys % num_clients:
-        print("WARNING: key range not a mulitple of the number of clients")
+        runner.log("WARNING: key range not a mulitple of the number of clients")
 
     sub_range = int(num_keys / num_clients)
 
@@ -209,11 +231,11 @@ def test_insert_multi_client(_runner, conf_values, args):
         if client.returncode != 0:
             raise RuntimeError("load failed")
 
-    print("All data written to MiniKV")
+    runner.log("All data written to MiniKV")
 
     # Check that every node has all data
     for idx in range(conf_values["num-replicas"]):
-        print(f"Checking node with id={idx}")
+        runner.log(f"Checking node with id={idx}")
 
         clients = []
         for i in range(num_clients):
