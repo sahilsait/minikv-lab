@@ -103,7 +103,7 @@ class Connection:
                     buffer = buffer[header_len:]
                     await self._protocol_logic.handle_message(self, msg_type, None)
 
-        self._protocol_logic.handle_disconnect(self)
+        await self._protocol_logic.handle_disconnect(self)
         logging.debug("Connection to peer closed")
 
     async def disconnect(self):
