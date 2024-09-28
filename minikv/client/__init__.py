@@ -114,6 +114,7 @@ def run():
                 if result != expected:
                     print(f'Invalid value for key "{key}". '
                           f'Expected "{expected}", but got "{result}".')
+                    sys.exit(1)
 
         case "random-ops":
             for _ in range(args.num_ops):
