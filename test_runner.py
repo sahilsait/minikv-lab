@@ -135,7 +135,7 @@ def _main():
                 failed_tests.append(name)
 
             output['tests'].append({
-                'name': name,
+                'name': conf_name + ": " + name,
                 'output': runner.get_output(),
                 'output_format': 'text',
                 'status': 'passed' if success else 'failed',
