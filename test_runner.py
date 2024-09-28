@@ -1,6 +1,6 @@
 #! /bin/env python3
 
-# pylint: disable=consider-using-with,broad-exception-caught,too-few-public-methods
+# pylint: disable=consider-using-with,broad-exception-caught,too-few-public-methods,raise-missing-from
 
 ''' Runs the integration tests for MiniKV '''
 
@@ -8,11 +8,11 @@ import sys
 import json
 import argparse
 
-from subprocess import check_call, Popen
+from subprocess import CalledProcessError, check_call, Popen
 from time import sleep
 
-class Logger:
-    ''' Writes output to log and also a string '''
+class TestError(Exception):
+    ''' An error indicating a test failed '''
 
 class TestRunner:
     ''' Sets up the replica set for us to run the test on '''
@@ -57,8 +57,6 @@ class TestRunner:
         ''' Get a log messages as a string '''
         return '\n'.join(self._log)
 
-
-
     def shutdown(self):
         ''' Shut down the test and all servers we set up for it '''
         for server in self._servers:
@@ -80,7 +78,7 @@ def _main():
     args = parser.parse_args()
 
     if args.scale_factor <= 0:
-        raise RuntimeError("Invalid scale factor")
+        raise TestError("Invalid scale factor")
 
     configs = {
         "One Replica": { "num-replicas": 1, },
@@ -161,9 +159,12 @@ def test_insert_single_client(runner, conf_values, args):
     num_keys = args.scale_factor * 10
 
     # Load data into the replica cluster
-    check_call(["python", "-c", "import minikv; minikv.run_client();",
+    try:
+        check_call(["python", "-c", "import minikv; minikv.run_client();",
                 "fill", "--loglevel="+args.loglevel,
                 f"--key-range={num_keys}"])
+    except CalledProcessError:
+        raise TestError("Failed to load data")
 
     runner.log("All data written to MiniKV")
 
@@ -171,10 +172,13 @@ def test_insert_single_client(runner, conf_values, args):
     for idx in range(conf_values["num-replicas"]):
         runner.log(f"Checking node with id={idx}")
 
-        check_call(["python", "-c", "import minikv; minikv.run_client();",
-                    "check-values", "--loglevel="+args.loglevel,
-                    f"--server-address=localhost:{8080+idx}",
-                    f"--key-range={num_keys}"])
+        try:
+            check_call(["python", "-c", "import minikv; minikv.run_client();",
+                        "check-values", "--loglevel="+args.loglevel,
+                        f"--server-address=localhost:{8080+idx}",
+                        f"--key-range={num_keys}"])
+        except CalledProcessError:
+            raise TestError("Check failed")
 
 def test_update(runner, conf_values, args):
     ''' Test MiniKV with a single client '''
@@ -198,10 +202,13 @@ def test_update(runner, conf_values, args):
     for idx in range(conf_values["num-replicas"]):
         runner.log(f"Checking node with id={idx}")
 
-        check_call(["python", "-c", "import minikv; minikv.run_client();",
+        try:
+            check_call(["python", "-c", "import minikv; minikv.run_client();",
                     "check-values", "--loglevel="+args.loglevel,
                     f"--server-address=localhost:{8080+idx}",
                     f"--key-range={num_keys}", f"--value-prefix={value}"])
+        except CalledProcessError:
+            raise TestError("Check failed")
 
 
 def test_insert_multi_client(runner, conf_values, args):
@@ -229,27 +236,27 @@ def test_insert_multi_client(runner, conf_values, args):
     for client in clients:
         client.wait()
         if client.returncode != 0:
-            raise RuntimeError("load failed")
+            raise TestError("Load failed")
 
     runner.log("All data written to MiniKV")
 
     # Check that every node has all data
+    clients = []
     for idx in range(conf_values["num-replicas"]):
         runner.log(f"Checking node with id={idx}")
 
-        clients = []
         for i in range(num_clients):
-            check_call(["python", "-c", "import minikv; minikv.run_client();",
-                    "check-values", "--loglevel="+args.loglevel,
-                    f"--server-address=localhost:{8080+idx}",
-                    f"--key-range={sub_range}",
-                    f"--key-offset={sub_range * i}"])
-        clients.append(proc)
+            client = Popen(["python", "-c", "import minikv; minikv.run_client();",
+                "check-values", "--loglevel="+args.loglevel,
+                f"--server-address=localhost:{8080+idx}",
+                f"--key-range={sub_range}",
+                f"--key-offset={sub_range * i}"])
+            clients.append(client)
 
     for client in clients:
         client.wait()
         if client.returncode != 0:
-            raise RuntimeError("check failed")
+            raise TestError("Check failed")
 
 if __name__ == "__main__":
     _main()
