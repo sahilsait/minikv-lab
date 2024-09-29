@@ -76,11 +76,31 @@ class ChainReplication:
         match msg_type:
             case MessageType.FORWARD_PASS:
                 # TODO add forward/downward pass logic here
-                pass
-
+                # Apply the update locally
+                self._database.put(message['key'], message['value'])
+                
+                if self.is_tail():
+                    # If this is the tail, start the backward pass
+                    await self._previous.send(MessageType.BACKWARD_PASS, message)
+                else:
+                    # Forward the update to the next node
+                    async with self._update_lock:
+                        self._pending_updates[message['txn_id']] = message
+                    await self._next.send(MessageType.FORWARD_PASS, message)
+            
+            
             case MessageType.BACKWARD_PASS:
                 # TODO add backward/acknowledgement pass logic here
-                pass
+                if self.is_head():
+                    # If this is the head, complete the transaction
+                    async with self._update_lock:
+                        self._pending_updates.pop(message['txn_id'], None)
+                        self._update_cond.notify_all()
+                else:
+                    # Forward the acknowledgment to the previous node
+                    async with self._update_lock:
+                        self._pending_updates.pop(message['txn_id'], None)
+                    await self._previous.send(MessageType.BACKWARD_PASS, message)
 
     async def get_all(self):
         ''' Return all entries in the database '''
@@ -99,4 +119,18 @@ class ChainReplication:
             self._database.put(key, value)
         else:
             # TODO add request to pending_updates and wait for it to complete
-            pass
+            self._database.put(key, value)
+            
+            txn_id = hash(key)
+            message = {
+                'txn_id': txn_id,
+                'key': key,
+                'value': value
+            }
+
+            async with self._update_lock:
+                self._pending_updates[txn_id] = message
+                await self._next.send(MessageType.FORWARD_PASS, message)
+                # Wait for the update to complete
+                await self._update_cond.wait_for(lambda: txn_id not in self._pending_updates)
+

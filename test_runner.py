@@ -1,4 +1,4 @@
-#! /bin/env python3
+#! /bin/env python33
 
 # pylint: disable=consider-using-with,broad-exception-caught,too-few-public-methods,raise-missing-from
 
@@ -35,7 +35,7 @@ class TestRunner:
             else:
                 connect_to = None
 
-            server_args = ["python", "-c" , "import minikv; minikv.run_node();",
+            server_args = ["python3", "-c" , "import minikv; minikv.run_node();",
                 replication_type, "--loglevel="+loglevel, f"--index={index}"]
 
             if connect_to:
@@ -160,7 +160,7 @@ def test_insert_single_client(runner, conf_values, args):
 
     # Load data into the replica cluster
     try:
-        check_call(["python", "-c", "import minikv; minikv.run_client();",
+        check_call(["python3", "-c", "import minikv; minikv.run_client();",
                 "fill", "--loglevel="+args.loglevel,
                 f"--key-range={num_keys}"])
     except CalledProcessError:
@@ -173,7 +173,7 @@ def test_insert_single_client(runner, conf_values, args):
         runner.log(f"Checking node with id={idx}")
 
         try:
-            check_call(["python", "-c", "import minikv; minikv.run_client();",
+            check_call(["python3", "-c", "import minikv; minikv.run_client();",
                         "check-values", "--loglevel="+args.loglevel,
                         f"--server-address=localhost:{8080+idx}",
                         f"--key-range={num_keys}"])
@@ -186,13 +186,13 @@ def test_update(runner, conf_values, args):
     num_keys = args.scale_factor * 10
     value = "therearethreersinstrawberry"
 
-    check_call(["python", "-c", "import minikv; minikv.run_client();",
+    check_call(["python3", "-c", "import minikv; minikv.run_client();",
                 "fill", "--loglevel="+args.loglevel,
                 f"--key-range={num_keys}", "--value-prefix=foobar"])
 
     runner.log("First pass of data written to MiniKV")
 
-    check_call(["python", "-c", "import minikv; minikv.run_client();",
+    check_call(["python3", "-c", "import minikv; minikv.run_client();",
                 "fill", "--loglevel="+args.loglevel,
                 f"--key-range={num_keys}", f"--value-prefix={value}"])
 
@@ -203,7 +203,7 @@ def test_update(runner, conf_values, args):
         runner.log(f"Checking node with id={idx}")
 
         try:
-            check_call(["python", "-c", "import minikv; minikv.run_client();",
+            check_call(["python3", "-c", "import minikv; minikv.run_client();",
                     "check-values", "--loglevel="+args.loglevel,
                     f"--server-address=localhost:{8080+idx}",
                     f"--key-range={num_keys}", f"--value-prefix={value}"])
@@ -228,7 +228,7 @@ def test_insert_multi_client(runner, conf_values, args):
     # Load data into the replica cluster
     clients = []
     for i in range(num_clients):
-        proc = Popen(["python", "-c", "import minikv; minikv.run_client();",
+        proc = Popen(["python3", "-c", "import minikv; minikv.run_client();",
                 "fill", "--loglevel="+args.loglevel, f"--key-range={sub_range}",
                 f"--key-offset={sub_range * i}"])
         clients.append(proc)
@@ -246,7 +246,7 @@ def test_insert_multi_client(runner, conf_values, args):
         runner.log(f"Checking node with id={idx}")
 
         for i in range(num_clients):
-            client = Popen(["python", "-c", "import minikv; minikv.run_client();",
+            client = Popen(["python3", "-c", "import minikv; minikv.run_client();",
                 "check-values", "--loglevel="+args.loglevel,
                 f"--server-address=localhost:{8080+idx}",
                 f"--key-range={sub_range}",

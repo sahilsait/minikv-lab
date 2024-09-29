@@ -12,16 +12,16 @@ install:
 	pip install -e .
 
 test-no-replication:
-	python ./test_runner.py none
+	python3 ./test_runner.py none
 
 quick-test-chain-replication:
-	python ./test_runner.py chain --scale-factor=1
+	python3 ./test_runner.py chain --scale-factor=1
 
 test-chain-replication:
-	python ./test_runner.py chain --scale-factor=10
+	python3 ./test_runner.py chain --scale-factor=10
 
 serve-no-replication: 
-	python -c "from minikv import run; run();" none
+	python3 -c "from minikv import run; run();" none
 
 submit-check:
 	@if ! test -d .git; then \
